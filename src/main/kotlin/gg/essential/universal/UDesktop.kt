@@ -139,7 +139,7 @@ object UDesktop {
     @JvmStatic
     fun getClipboardString(): String =
         //#if MC>=11400
-        UMinecraft.getMinecraft().keyboard.clipboard
+        UMinecraft.getMinecraft().keyboardHandler.clipboard
         //#else
         //$$ GuiScreen.getClipboardString()
         //#endif
@@ -147,7 +147,7 @@ object UDesktop {
     @JvmStatic
     fun setClipboardString(str: String) {
         //#if MC>=11400
-        UMinecraft.getMinecraft().keyboard.clipboard = str
+        UMinecraft.getMinecraft().keyboardHandler.clipboard = str
         //#else
         //$$ GuiScreen.setClipboardString(str)
         //#endif

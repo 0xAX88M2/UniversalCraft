@@ -1,12 +1,7 @@
 package gg.essential.universal
 
-//#if MC<11600
-//$$ import java.awt.image.BufferedImage
-//#else
-import net.minecraft.client.texture.NativeImage
-//#endif
+import com.mojang.blaze3d.platform.NativeImage
 
-//#if MC>=11600
 class UImage(val nativeImage: NativeImage) {
 //#else
 //$$ class UImage(val nativeImage: BufferedImage) {
@@ -32,7 +27,7 @@ class UImage(val nativeImage: NativeImage) {
     fun getPixelRGBA(x: Int, y: Int): Int {
         //#if MC>=11600
         // Convert ABGR to RGBA
-        val abgr = nativeImage.getColor(x, y) // mappings are incorrect, this returns ABGR
+        val abgr = nativeImage.getPixelRGBA(x, y) // mappings are incorrect, this returns ABGR
         val a = abgr shr 24 and 0xFF
         val b = abgr shr 16 and 0xFF
         val g = abgr shr 8 and 0xFF
@@ -50,7 +45,7 @@ class UImage(val nativeImage: NativeImage) {
         val g = color shr 16 and 0xFF
         val b = color shr 8 and 0xFF
         val a = color and 0xFF
-        nativeImage.setColor(x, y, (a shl 24) or (b shl 16) or (g shl 8) or r) // mappings are incorrect, this takes ABGR
+        nativeImage.setPixelRGBA(x, y, (a shl 24) or (b shl 16) or (g shl 8) or r) // mappings are incorrect, this takes ABGR
         //#else
         //$$ nativeImage.setRGB(x, y, Integer.rotateRight(color, 8)) // Convert RGBA to ARGB
         //#endif

@@ -4,7 +4,7 @@ plugins {
 	id 'maven-publish'
 }
 
-version = "323-yarn"
+version = "323-mojmap"
 group = "gg.essential"
 
 base {
@@ -12,13 +12,19 @@ base {
 }
 
 repositories {
-
+	maven {
+		name = 'ParchmentMC'
+		url = 'https://maven.parchmentmc.org'
+	}
 }
 
 dependencies {
-	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:1.20.4"
-	mappings "net.fabricmc:yarn:1.20.4+build.3:v2"
+	mappings loom.layered() {
+		officialMojangMappings()
+		parchment("org.parchmentmc.data:parchment-1.20.4:2024.02.25@zip")
+	}
+	//mappings "net.fabricmc:yarn:1.20.4+build.3:v2"
 	modImplementation "net.fabricmc:fabric-loader:0.15.6"
 }
 

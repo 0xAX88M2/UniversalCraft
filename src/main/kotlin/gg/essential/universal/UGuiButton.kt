@@ -1,15 +1,15 @@
 package gg.essential.universal
 
-import net.minecraft.client.gui.widget.ClickableWidget
+import net.minecraft.client.gui.components.AbstractWidget
 
 object UGuiButton {
     @JvmStatic
-    fun getX(button: ClickableWidget): Int {
+    fun getX(button: AbstractWidget): Int {
         return button.x
     }
 
     @JvmStatic
-    fun getY(button: ClickableWidget): Int {
+    fun getY(button: AbstractWidget): Int {
         return button.y
     }
 }

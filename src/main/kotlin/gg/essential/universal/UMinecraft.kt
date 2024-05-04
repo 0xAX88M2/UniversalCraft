@@ -1,22 +1,20 @@
 package gg.essential.universal
 
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.font.TextRenderer
-import net.minecraft.client.gui.hud.ChatHud
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.client.network.ClientPlayNetworkHandler
-import net.minecraft.client.option.GameOptions
+import com.mojang.blaze3d.Blaze3D
+import net.minecraft.client.Minecraft
+import net.minecraft.client.Options
+import net.minecraft.client.gui.Font
+import net.minecraft.client.gui.components.ChatComponent
+import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.multiplayer.ClientPacketListener
+import net.minecraft.client.player.LocalPlayer
 
-//#if MC>=11502
-import net.minecraft.client.util.GlfwUtil
-//#endif
 
 object UMinecraft {
     //#if MC>=11900
     private var guiScaleValue: Int
-        get() = getSettings().guiScale.value
-        set(value) { getSettings().guiScale.value = value }
+        get() = getSettings().guiScale().get()
+        set(value) { getSettings().guiScale().set(value) }
     //#else
     //$$ private var guiScaleValue: Int
     //$$     get() = getSettings().guiScale
@@ -31,52 +29,52 @@ object UMinecraft {
             //#if MC>=11502
             val mc = getMinecraft()
             val window = mc.window
-            val scaleFactor = window.calculateScaleFactor(value, mc.forcesUnicodeFont())
-            window.scaleFactor = scaleFactor.toDouble()
+            val scaleFactor = window.calculateScale(value, mc.isEnforceUnicode())
+            window.guiScale = scaleFactor.toDouble()
             //#endif
         }
 
     @JvmField
     val isRunningOnMac: Boolean =
-        MinecraftClient.IS_SYSTEM_MAC
+        Minecraft.ON_OSX
 
     @JvmStatic
-    fun getMinecraft(): MinecraftClient {
-        return MinecraftClient.getInstance()
+    fun getMinecraft(): Minecraft {
+        return Minecraft.getInstance()
     }
 
     @JvmStatic
-    fun getWorld(): ClientWorld? {
-        return getMinecraft().world
+    fun getWorld(): ClientLevel? {
+        return getMinecraft().level
     }
 
     @JvmStatic
-    fun getNetHandler(): ClientPlayNetworkHandler? {
-        return getMinecraft().networkHandler
+    fun getNetHandler(): ClientPacketListener? {
+        return getMinecraft().connection
     }
 
     @JvmStatic
-    fun getPlayer(): ClientPlayerEntity? {
+    fun getPlayer(): LocalPlayer? {
         return getMinecraft().player
     }
 
     @JvmStatic
-    fun getFontRenderer(): TextRenderer {
-        return getMinecraft().textRenderer
+    fun getFontRenderer(): Font {
+        return getMinecraft().font
     }
 
     @JvmStatic
     fun getTime(): Long {
         //#if MC>=11502
-        return (GlfwUtil.getTime() * 1000).toLong()
+        return (Blaze3D.getTime() * 1000).toLong()
         //#else
         //$$ return Minecraft.getSystemTime()
         //#endif
     }
 
     @JvmStatic
-    fun getChatGUI(): ChatHud? = getMinecraft().inGameHud?.chatHud
+    fun getChatGUI(): ChatComponent? = getMinecraft().gui?.chat
 
     @JvmStatic
-    fun getSettings(): GameOptions = getMinecraft().options
+    fun getSettings(): Options = getMinecraft().options
 }

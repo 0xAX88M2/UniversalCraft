@@ -1,17 +1,7 @@
 package gg.essential.universal.vertex
 
+import com.mojang.blaze3d.vertex.VertexConsumer
 import gg.essential.universal.UMatrixStack
-import net.minecraft.client.render.BufferBuilder
-
-//#if MC>=11602
-import net.minecraft.client.render.VertexConsumer
-//#else
-//$$ import org.lwjgl.util.vector.Matrix3f
-//$$ import org.lwjgl.util.vector.Matrix4f
-//$$ import org.lwjgl.util.vector.Vector3f
-//$$ import org.lwjgl.util.vector.Vector4f
-//#endif
-
 internal class VanillaVertexConsumer(
     //#if MC>=11600
     private val inner: VertexConsumer,
@@ -44,7 +34,7 @@ internal class VanillaVertexConsumer(
 
     override fun tex(u: Double, v: Double): UVertexConsumer = apply {
         //#if MC>=11502
-        inner.texture(u.toFloat(), v.toFloat());
+        inner.uv(u.toFloat(), v.toFloat());
         //#else
         //$$ inner.tex(u, v)
         //#endif
@@ -52,14 +42,14 @@ internal class VanillaVertexConsumer(
 
     override fun overlay(u: Int, v: Int): UVertexConsumer = apply {
         //#if MC>=11502
-        inner.overlay(u, v);
+        inner.overlayCoords(u, v);
         //#else
         //$$ inner.tex(u.toDouble(), v.toDouble())
         //#endif
     }
 
     override fun light(u: Int, v: Int): UVertexConsumer = apply {
-        inner.light(u, v)
+        inner.uv2(u, v)
     }
 
     override fun norm(stack: UMatrixStack, x: Float, y: Float, z: Float): UVertexConsumer = apply {
@@ -81,6 +71,6 @@ internal class VanillaVertexConsumer(
     }
 
     override fun endVertex(): UVertexConsumer = apply {
-        inner.next()
+        inner.endVertex()
     }
 }

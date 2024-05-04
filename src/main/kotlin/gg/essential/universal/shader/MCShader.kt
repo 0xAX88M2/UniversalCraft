@@ -1,31 +1,23 @@
-// MC 1.17+
 package gg.essential.universal.shader
 
 import com.google.common.collect.ImmutableMap
+import com.mojang.blaze3d.shaders.Uniform
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.VertexFormat
 import gg.essential.universal.UGraphics
 import gg.essential.universal.UGraphics.CommonVertexFormats
-import net.minecraft.client.gl.GlUniform
-import net.minecraft.client.gl.ShaderProgram
-import net.minecraft.client.render.VertexFormat
-import net.minecraft.client.render.VertexFormats
-import net.minecraft.util.Identifier
 import org.apache.commons.codec.digest.DigestUtils
 import java.io.FileNotFoundException
 import kotlin.NoSuchElementException
-
-//#if MC>=11903
 import gg.essential.universal.DummyPack
-//#endif
-
-//#if MC>=11900
-import net.minecraft.resource.Resource
+import net.minecraft.client.renderer.ShaderInstance
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.packs.resources.Resource
 import java.util.Optional
-//#else
-//$$ import net.minecraft.resource.ResourceImpl
-//#endif
+
 
 internal class MCShader(
-    private val mc: ShaderProgram,
+    private val mc: ShaderInstance,
     private val blendState: BlendState
 ) : UShader {
     override var usable = true
@@ -92,7 +84,7 @@ internal class MCShader(
                 println(json)
             }
 
-            val factory = { id: Identifier ->
+            val factory = { id: ResourceLocation ->
                 val content = when {
                     id.path.endsWith(".json") -> json
                     id.path.endsWith(".vsh") -> transformedVertSource
@@ -116,17 +108,17 @@ internal class MCShader(
                         .associate { it.value to vertexFormat.mc.elements[it.index] }))
             } else {
                 // Legacy fallback: The actual element doesn't matter here, Shader only cares about the names
-                VertexFormat(ImmutableMap.copyOf(transformer.attributes.associateWith { VertexFormats.POSITION_ELEMENT }))
+                VertexFormat(ImmutableMap.copyOf(transformer.attributes.associateWith { DefaultVertexFormat.ELEMENT_POSITION }))
             }
 
 
             val name = DigestUtils.sha1Hex(json).lowercase()
-            return MCShader(ShaderProgram(factory, name, shaderVertexFormat), blendState)
+            return MCShader(ShaderInstance(factory, name, shaderVertexFormat), blendState)
         }
     }
 }
 
-internal class MCShaderUniform(val mc: GlUniform) : ShaderUniform, IntUniform, FloatUniform, Float2Uniform, Float3Uniform, Float4Uniform, FloatMatrixUniform {
+internal class MCShaderUniform(val mc: Uniform) : ShaderUniform, IntUniform, FloatUniform, Float2Uniform, Float3Uniform, Float4Uniform, FloatMatrixUniform {
     override val location: Int
         get() = mc.location
 
@@ -138,16 +130,16 @@ internal class MCShaderUniform(val mc: GlUniform) : ShaderUniform, IntUniform, F
 
     override fun setValue(v1: Float, v2: Float, v3: Float) = mc.set(v1, v2, v3)
 
-    override fun setValue(v1: Float, v2: Float, v3: Float, v4: Float) = mc.setAndFlip(v1, v2, v3, v4)
+    override fun setValue(v1: Float, v2: Float, v3: Float, v4: Float) = mc.set(v1, v2, v3, v4)
 
     override fun setValue(array: FloatArray) = mc.set(array)
 }
 
-internal class MCSamplerUniform(val mc: ShaderProgram, val name: String) : SamplerUniform {
+internal class MCSamplerUniform(val mc: ShaderInstance, val name: String) : SamplerUniform {
     override val location: Int = 0
 
     override fun setValue(textureId: Int) {
-        mc.addSampler(name, textureId)
+        mc.setSampler(name, textureId)
     }
 }
 
@@ -198,7 +190,7 @@ internal class ShaderTransformer(private val vertexFormat: CommonVertexFormats?)
             replaceAttribute(newAttributes, "gl_MultiTexCoord2.st", "vec2", "uc_UV2")
 
             if (vertexFormat != null) {
-                newAttributes.sortedBy { vertexFormat.mc.attributeNames.indexOf(it.first.removePrefix("uc_")) }
+                newAttributes.sortedBy { vertexFormat.mc.elementAttributeNames.indexOf(it.first.removePrefix("uc_")) }
                     .forEach {
                         attributes.add(it.first)
                         transformed.add(it.second)

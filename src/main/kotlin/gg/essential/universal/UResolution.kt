@@ -35,7 +35,7 @@ object UResolution {
     val viewportWidth: Int
         get() {
             //#if MC>=11502
-            return UMinecraft.getMinecraft().window.framebufferWidth
+            return UMinecraft.getMinecraft().window.width
             //#else
             //$$ return UMinecraft.getMinecraft().displayWidth
             //#endif
@@ -45,7 +45,7 @@ object UResolution {
     val viewportHeight: Int
         get() {
             //#if MC>=11502
-            return UMinecraft.getMinecraft().window.framebufferHeight
+            return UMinecraft.getMinecraft().window.height
             //#else
             //$$ return UMinecraft.getMinecraft().displayHeight
             //#endif
@@ -67,7 +67,7 @@ object UResolution {
     val scaledWidth: Int
         get() {
             //#if MC>=11502
-            return UMinecraft.getMinecraft().window.scaledWidth
+            return UMinecraft.getMinecraft().window.guiScaledWidth
             //#else
             //$$ return get().scaledWidth
             //#endif
@@ -77,7 +77,7 @@ object UResolution {
     val scaledHeight: Int
         get() {
             //#if MC>=11502
-            return UMinecraft.getMinecraft().window.scaledHeight
+            return UMinecraft.getMinecraft().window.guiScaledHeight
             //#else
             //$$ return get().scaledHeight
             //#endif
@@ -87,7 +87,7 @@ object UResolution {
     val scaleFactor: Double
         get() {
             //#if MC>=11502
-            return UMinecraft.getMinecraft().window.scaleFactor
+            return UMinecraft.getMinecraft().window.guiScale
             //#else
             //$$ return get().scaleFactor.toDouble()
             //#endif

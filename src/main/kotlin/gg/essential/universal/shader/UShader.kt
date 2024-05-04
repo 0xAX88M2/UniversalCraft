@@ -1,10 +1,7 @@
 package gg.essential.universal.shader
 
 import gg.essential.universal.UGraphics
-
-//#if MC>=11700
-import net.minecraft.client.gl.ShaderProgram
-//#endif
+import net.minecraft.client.renderer.ShaderInstance
 
 interface UShader {
     val usable: Boolean
@@ -50,7 +47,7 @@ interface UShader {
         }
 
         //#if MC>=11700
-        fun fromMcShader(shader: ShaderProgram, blendState: BlendState): UShader {
+        fun fromMcShader(shader: ShaderInstance, blendState: BlendState): UShader {
             return MCShader(shader, blendState)
         }
         //#endif

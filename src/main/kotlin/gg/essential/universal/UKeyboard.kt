@@ -1,15 +1,14 @@
 package gg.essential.universal
 
-import net.minecraft.client.option.KeyBinding
+import com.mojang.blaze3d.platform.InputConstants
 
 //#if MC>=11600
 import gg.essential.universal.wrappers.message.UTextComponent
+import net.minecraft.client.KeyMapping
 //#endif
 
 //#if MC>=11502
 import org.lwjgl.glfw.GLFW
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.util.InputUtil
 //#else
 //$$ import org.lwjgl.input.Keyboard
 //$$ import org.lwjgl.input.Mouse
@@ -18,7 +17,7 @@ import net.minecraft.client.util.InputUtil
 
 object UKeyboard {
     //#if MC>=11502
-    @JvmField val KEY_NONE: Int = noInline { InputUtil.UNKNOWN_KEY.code }
+    @JvmField val KEY_NONE: Int = noInline { InputConstants.UNKNOWN.value }
     @JvmField val KEY_ESCAPE: Int = noInline { GLFW.GLFW_KEY_ESCAPE }
     @JvmField val KEY_LMETA: Int = noInline { GLFW.GLFW_KEY_LEFT_SUPER } // TODO: Correct?
     @JvmField val KEY_RMETA: Int = noInline { GLFW.GLFW_KEY_RIGHT_SUPER } // TODO: Correct?
@@ -296,7 +295,7 @@ object UKeyboard {
     fun isKeyDown(key: Int): Boolean {
         if (key == KEY_NONE) return false
         //#if MC>=11502
-        val window = UMinecraft.getMinecraft().window.handle
+        val window = UMinecraft.getMinecraft().window.window
         val state = if (key < 20) GLFW.glfwGetMouseButton(window, key) else GLFW.glfwGetKey(window, key)
         return state == GLFW.GLFW_PRESS
         //#else
@@ -318,10 +317,10 @@ object UKeyboard {
      * for you, check whether there is a key bound separately before calling this method.
      */
     @JvmStatic
-    fun getKeyName(keyBinding: KeyBinding): String? {
+    fun getKeyName(keyBinding: KeyMapping): String? {
         //#if MC>=11400
         //#if MC>=11600
-        return UTextComponent(keyBinding.boundKeyLocalizedText).unformattedText.let {
+        return UTextComponent(keyBinding.getTranslatedKeyMessage()).unformattedText.let {
         //#else
         //$$ return keyBinding.localizedName?.let {
         //#endif

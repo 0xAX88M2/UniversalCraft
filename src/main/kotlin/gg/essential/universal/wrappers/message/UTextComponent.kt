@@ -3,25 +3,10 @@ package gg.essential.universal.wrappers.message
 
 import gg.essential.universal.UChat
 import gg.essential.universal.utils.*
-import net.minecraft.text.ClickEvent
-import net.minecraft.text.HoverEvent
-import net.minecraft.util.Formatting
-import net.minecraft.text.Text
-import net.minecraft.text.Style
-
-//#if MC>=11900
-import net.minecraft.text.TextContent
-//#else
-//$$ import net.minecraft.text.LiteralText
-//#endif
-
-//#if MC>=11602
-import net.minecraft.text.OrderedText
-import net.minecraft.text.MutableText
-import net.minecraft.text.CharacterVisitor
-import net.minecraft.text.TextColor
-import net.minecraft.text.StringVisitable.StyledVisitor
-import net.minecraft.text.StringVisitable.Visitor
+import net.minecraft.ChatFormatting
+import net.minecraft.network.chat.*
+import net.minecraft.util.FormattedCharSequence
+import net.minecraft.util.FormattedCharSink
 import java.util.Optional
 //#if MC<11900
 //$$ import java.util.function.UnaryOperator
@@ -35,8 +20,8 @@ import java.util.Optional
 
 @Suppress("MemberVisibilityCanBePrivate")
 //#if MC>=11900
-class UTextComponent : Text {
-    lateinit var component: MutableText
+class UTextComponent : Component {
+    lateinit var component: MutableComponent
 //#elseif MC>=11600
 //$$ class UTextComponent : MutableText {
 //$$     lateinit var component: MutableText
@@ -83,8 +68,8 @@ class UTextComponent : Text {
     }
 
     //#if MC>=11600
-    constructor(component: Text) : this(component.copy())
-    constructor(component: MutableText) {
+    constructor(component: Component) : this(component.copy())
+    constructor(component: MutableComponent) {
     //#else
     //$$ constructor(component: ITextComponent) {
     //#endif
@@ -146,7 +131,7 @@ class UTextComponent : Text {
 
     private fun reInstance() {
         //#if MC>=11900
-        component = Text.literal(text.formatIf(formatted))
+        component = Component.literal(text.formatIf(formatted))
         //#else
         //$$ component = LiteralText(text.formatIf(formatted))
         //#endif
@@ -204,7 +189,7 @@ class UTextComponent : Text {
     private fun String.formatIf(predicate: Boolean) = if (predicate) UChat.addColor(this) else this
 
     //#if MC>=11602
-    private class TextBuilder(private val isFormatted: Boolean) : CharacterVisitor {
+    private class TextBuilder(private val isFormatted: Boolean) : FormattedCharSink {
         private val builder = StringBuilder()
         private var cachedStyle: Style? = null
 
@@ -238,8 +223,8 @@ class UTextComponent : Text {
         }
 
         companion object {
-            private val colorToFormatChar = Formatting.values().mapNotNull { format ->
-                TextColor.fromFormatting(format)?.let { it to format }
+            private val colorToFormatChar = ChatFormatting.values().mapNotNull { format ->
+                TextColor.fromLegacyFormat(format)?.let { it to format }
             }.toMap()
         }
     }
@@ -250,23 +235,23 @@ class UTextComponent : Text {
     // **********************
 
     //#if MC>=11900
-    override fun getContent(): TextContent = component.content
+    override fun getContents(): ComponentContents = component.contents
     //#endif
 
     //#if MC>=11602
     val unformattedText: String get() {
         val builder = TextBuilder(false)
-        component.asOrderedText().accept(builder)
+        component.getVisualOrderText().accept(builder)
         return builder.getString()
     }
 
     val formattedText: String get() {
         val builder = TextBuilder(true)
-        component.asOrderedText().accept(builder)
+        component.getVisualOrderText().accept(builder)
         return builder.getString()
     }
 
-    fun appendSibling(text: Text): MutableText = component.append(text)
+    fun appendSibling(text: Component): MutableComponent = component.append(text)
 
     //#if MC<11900
     //$$ override fun setStyle(style: Style): MutableText = component.setStyle(style)
@@ -286,13 +271,13 @@ class UTextComponent : Text {
 
     override fun getString(): String = component.string
 
-    override fun asTruncatedString(maxLen: Int): String = component.asTruncatedString(maxLen)
+    override fun getString(maxLen: Int): String = component.getString(maxLen)
 
-    override fun <T> visit(p_230439_1_: StyledVisitor<T>, p_230439_2_: Style): Optional<T> {
+    override fun <T> visit(p_230439_1_: FormattedText.StyledContentConsumer<T>, p_230439_2_: Style): Optional<T> {
         return component.visit(p_230439_1_, p_230439_2_)
     }
 
-    override fun <T> visit(p_230438_1_: Visitor<T>): Optional<T> {
+    override fun <T> visit(p_230438_1_: FormattedText.ContentConsumer<T>): Optional<T> {
         return component.visit(p_230438_1_)
     }
 
@@ -312,13 +297,13 @@ class UTextComponent : Text {
     //$$ override fun asString(): String = component.asString()
     //#endif
 
-    override fun getSiblings(): MutableList<Text> = component.siblings
+    override fun getSiblings(): MutableList<Component> = component.siblings
 
-    override fun copyContentOnly(): MutableText = component.copyContentOnly()
+    override fun plainCopy(): MutableComponent = component.plainCopy()
 
-    override fun copy(): MutableText = component.copy()
+    override fun copy(): MutableComponent = component.copy()
 
-    override fun asOrderedText(): OrderedText = component.asOrderedText()
+    override fun getVisualOrderText(): FormattedCharSequence = component.getVisualOrderText()
     //#elseif MC>=11502
     //$$ val unformattedText: String get() = getUnformattedComponentText()
     //$$
@@ -410,14 +395,14 @@ class UTextComponent : Text {
             return when (obj) {
                 is UTextComponent -> obj
                 is String -> UTextComponent(obj)
-                is Text -> UTextComponent(obj)
+                is Component -> UTextComponent(obj)
                 else -> null
             }
         }
 
         fun stripFormatting(string: String): String {
             //#if MC>=11202
-            return Formatting.strip(string)!!
+            return ChatFormatting.stripFormatting(string)!!
             //#else
             //$$ return EnumChatFormatting.getTextWithoutFormattingCodes(string)
             //#endif

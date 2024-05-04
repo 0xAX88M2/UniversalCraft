@@ -1,14 +1,10 @@
 package gg.essential.universal.utils
 
+import com.mojang.blaze3d.platform.NativeImage
 import gg.essential.universal.UGraphics
-import net.minecraft.client.texture.AbstractTexture
 import com.mojang.blaze3d.platform.TextureUtil
-import net.minecraft.resource.ResourceManager
-
-//#if MC<11502
-//$$ import java.awt.image.BufferedImage
-//#else
-import net.minecraft.client.texture.NativeImage
+import net.minecraft.client.renderer.texture.AbstractTexture
+import net.minecraft.server.packs.resources.ResourceManager
 //#endif
 
 
@@ -84,24 +80,24 @@ class ReleasedDynamicTexture private constructor(
         }
     }
 
-    private fun allocGlId() = super.getGlId()
+    private fun allocGlId() = super.getId()
 
     val dynamicGlId: Int
-        get() = getGlId()
+        get() = getId()
 
-    override fun getGlId(): Int {
+    override fun getId(): Int {
         uploadTexture()
-        return super.getGlId()
+        return super.getId()
     }
 
-    override fun clearGlId() {
-        super.clearGlId()
+    override fun releaseId() {
+        super.releaseId()
         resources.glId = -1
     }
 
     //#if MC>=11600
     override fun close() {
-        clearGlId()
+        releaseId()
         resources.close()
     }
     //#endif

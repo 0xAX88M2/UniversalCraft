@@ -30,7 +30,7 @@ interface UVertexConsumer {
         @JvmStatic
         fun of(
             //#if MC>=11600
-            wrapped: net.minecraft.client.render.VertexConsumer,
+            wrapped: com.mojang.blaze3d.vertex.VertexConsumer,
             //#else
             //$$ wrapped: net.minecraft.client.renderer.BufferBuilder,
             //#endif

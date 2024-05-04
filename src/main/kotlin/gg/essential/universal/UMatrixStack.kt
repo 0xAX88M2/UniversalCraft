@@ -1,28 +1,13 @@
 package gg.essential.universal
 
-import net.minecraft.client.util.GlAllocationUtils
-import org.lwjgl.opengl.GL11
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.util.Mth
 import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.joml.Quaternionf
-import org.joml.Vector3f
-import java.nio.Buffer
 import java.nio.FloatBuffer
 import java.util.*
-import kotlin.math.cos
-import kotlin.math.sin
-
-//#if MC>=11700
-import com.mojang.blaze3d.systems.RenderSystem
-//#endif
-
-//#if MC>=11600
-import net.minecraft.client.util.math.MatrixStack
-//#endif
-
-//#if MC>=11400
-import net.minecraft.util.math.MathHelper
-//#endif
 
 /**
  * A stack of matrices which can be manipulated via common transformations, just like MC's MatrixStack.
@@ -44,9 +29,9 @@ class UMatrixStack private constructor(
     })
 
     //#if MC>=11600
-    constructor(mc: MatrixStack) : this(mc.peek())
-    constructor(mc: MatrixStack.Entry) : this(ArrayDeque<Entry>().apply {
-        add(Entry(mc.positionMatrix, mc.normalMatrix))
+    constructor(mc: PoseStack) : this(mc.last())
+    constructor(mc: PoseStack.Pose) : this(ArrayDeque<Entry>().apply {
+        add(Entry(mc.pose(), mc.normal()))
     })
     fun toMC() = peek().toMCStack()
     //#endif
@@ -93,7 +78,7 @@ class UMatrixStack private constructor(
                 val iy = 1f / y
                 val iz = 1f / z
                 //#if MC>=11400
-                val rt = MathHelper.fastInverseCbrt(ix * iy * iz)
+                val rt = Mth.fastInvCubeRoot(ix * iy * iz)
                 //#else
                 //$$ val rt = Math.cbrt((ix * iy * iz).toDouble()).toFloat()
                 //#endif
@@ -186,7 +171,7 @@ class UMatrixStack private constructor(
         //#if MC>=11700
         //#if MC>=11800
         // FIXME preprocessor bug: should remap the intermediary name to yarn no problem
-        RenderSystem.getModelViewStack().multiplyPositionMatrix(stack.last.model)
+        RenderSystem.getModelViewStack().mulPoseMatrix(stack.last.model)
         //#else
         //$$ RenderSystem.getModelViewStack().method_34425(stack.last.model)
         //#endif
@@ -205,7 +190,7 @@ class UMatrixStack private constructor(
 
     fun replaceGlobalState() {
         //#if MC>=11700
-        RenderSystem.getModelViewStack().loadIdentity()
+        RenderSystem.getModelViewStack().setIdentity()
         //#else
         //$$ GL11.glLoadIdentity()
         //#endif
@@ -229,13 +214,13 @@ class UMatrixStack private constructor(
     private inline fun <R> withGlobalStackPushed(block: () -> R) : R {
         //#if MC>=11700
         val stack = RenderSystem.getModelViewStack()
-        stack.push()
+        stack.pushPose()
         //#else
         //$$ UGraphics.GL.pushMatrix()
         //#endif
         return block().also {
             //#if MC>=11700
-            stack.pop()
+            stack.popPose()
             RenderSystem.applyModelViewMatrix()
             //#else
             //$$ UGraphics.GL.popMatrix()
@@ -245,9 +230,9 @@ class UMatrixStack private constructor(
 
     data class Entry(val model: Matrix4f, val normal: Matrix3f) {
         //#if MC>=11600
-        fun toMCStack() = MatrixStack().also {
-            it.peek().positionMatrix.mul(model)
-            it.peek().normalMatrix.mul(normal)
+        fun toMCStack() = PoseStack().also {
+            it.last().pose().mul(model)
+            it.last().normal().mul(normal)
         }
         //#endif
 

@@ -1,10 +1,11 @@
 package gg.essential.universal
 
 import gg.essential.universal.wrappers.message.UTextComponent
-import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 
 //#if MC>=11602
 import gg.essential.universal.wrappers.UPlayer
+import net.minecraft.network.protocol.game.ClientboundSystemChatPacket
+
 //#endif
 
 //#if MC>=11901
@@ -42,7 +43,7 @@ import gg.essential.universal.wrappers.UPlayer
 object UPacket {
     @JvmStatic
     fun sendChatMessage(message: UTextComponent) {
-        UMinecraft.getNetHandler()!!.onGameMessage(GameMessageS2CPacket(
+        UMinecraft.getNetHandler()!!.handleSystemChat(ClientboundSystemChatPacket(
             message,
             //#if MC>=11901
             false,
@@ -57,7 +58,8 @@ object UPacket {
     
     @JvmStatic
     fun sendActionBarMessage(message: UTextComponent) {
-        UMinecraft.getNetHandler()!!.onGameMessage(GameMessageS2CPacket(
+        UMinecraft.getNetHandler()!!.handleSystemChat(
+            ClientboundSystemChatPacket(
             message,
             //#if MC>=11901
             true,
@@ -67,6 +69,7 @@ object UPacket {
             //#if MC>=11600 && MC<11900
             //$$ UPlayer.getUUID(),
             //#endif
-        ))
+        )
+        )
     }
 }

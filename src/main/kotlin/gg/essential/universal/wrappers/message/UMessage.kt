@@ -4,15 +4,11 @@ import gg.essential.universal.UMinecraft
 import gg.essential.universal.UPacket
 import gg.essential.universal.utils.MCITextComponent
 import gg.essential.universal.wrappers.UPlayer
-import net.minecraft.client.gui.hud.ChatHud
+import net.minecraft.client.gui.components.ChatComponent
+import net.minecraft.network.chat.MutableComponent
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.ThreadLocalRandom
-
-//#if MC>=11600
-import net.minecraft.text.MutableText
-//#endif
-
 class UMessage {
     private lateinit var _chatMessage: UTextComponent
     val messageParts: MutableList<UTextComponent> = mutableListOf()
@@ -39,7 +35,7 @@ class UMessage {
         } else {
             component.siblings
                 //#if MC>=11600
-                .filterIsInstance<MutableText>()
+                .filterIsInstance<MutableComponent>()
                 //#endif
                 .map { UTextComponent(it) }
                 .forEach { messageParts.add(it) }
@@ -124,7 +120,7 @@ class UMessage {
 }
 
 private val printChatMessageWithOptionalDeletion: MethodHandle? = try {
-    val method = ChatHud::class.java.declaredMethods.find { method ->
+    val method = ChatComponent::class.java.declaredMethods.find { method ->
         method.parameterTypes.run {
             size == 2 &&
                     get(0) == MCITextComponent::class.java &&
@@ -132,7 +128,7 @@ private val printChatMessageWithOptionalDeletion: MethodHandle? = try {
         }
     } ?: throw NoSuchMethodException(
         "Could not find method to edit chat messages. " +
-        "No method with parameters (${MCITextComponent::class.java.name}, int) in ${ChatHud::class.java.name}."
+        "No method with parameters (${MCITextComponent::class.java.name}, int) in ${ChatComponent::class.java.name}."
     )
     method.isAccessible = true
     MethodHandles.lookup().unreflect(method)

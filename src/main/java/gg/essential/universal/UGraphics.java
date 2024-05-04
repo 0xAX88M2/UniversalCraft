@@ -9,78 +9,44 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.vertex.*;
 import gg.essential.universal.utils.ReleasedDynamicTexture;
 import gg.essential.universal.vertex.UVertexConsumer;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.texture.ResourceTexture;
-import net.minecraft.client.texture.TextureManager;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormatElement;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.StringSplitter;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import net.minecraft.client.renderer.texture.SimpleTexture;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_BINDING_2D;
 import static org.lwjgl.opengl.GL13.GL_ACTIVE_TEXTURE;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
-
-//#if MC>=11904
-import net.minecraft.client.font.TextRenderer;
-//#endif
-
-//#if MC>=11900
-import net.minecraft.text.Text;
-//#endif
-
-//#if MC>=11700
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.gl.ShaderProgram;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-//#endif
-
-//#if MC>=11602
-import net.minecraft.util.Identifier;
-import net.minecraft.text.Style;
-import net.minecraft.client.font.TextHandler;
-import net.minecraft.text.PlainTextContent.Literal;
-import net.minecraft.text.StringVisitable;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumerProvider;
 import java.util.ArrayList;
 import java.util.Optional;
-//#else
-//$$ import org.lwjgl.util.vector.Matrix3f;
-//$$ import org.lwjgl.util.vector.Matrix4f;
-//$$ import org.lwjgl.util.vector.Vector3f;
-//$$ import org.lwjgl.util.vector.Vector4f;
-//#endif
-
-//#if MC>=11502
 import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.texture.NativeImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-//#else
-//$$ import static org.lwjgl.opengl.GL14.glBlendEquation;
-//#endif
-
-//#if MC>=11400
-import net.minecraft.client.texture.AbstractTexture;
-//#else
-//$$ import net.minecraft.client.renderer.OpenGlHelper;
-//$$ import net.minecraft.client.renderer.BufferBuilder;
-//$$ import net.minecraft.client.renderer.texture.ITextureObject;
-//#endif
+import net.minecraft.client.gui.Font;
 
 public class UGraphics {
     private static final Pattern formattingCodePattern = Pattern.compile("(?i)\u00a7[0-9A-FK-OR]");
 
     //#if MC>=11602
-    public static Style EMPTY_WITH_FONT_ID = Style.EMPTY.withFont(new Identifier("minecraft", "alt"));
+    public static Style EMPTY_WITH_FONT_ID = Style.EMPTY.withFont(new ResourceLocation("minecraft", "alt"));
     //#endif
     private static UMatrixStack UNIT_STACK = UMatrixStack.UNIT;
     public static int ZERO_TEXT_ALPHA = 10;
@@ -88,7 +54,7 @@ public class UGraphics {
     private VertexFormat vertexFormat;
 
     //#if MC>=11904
-    private static final TextRenderer.TextLayerType TEXT_LAYER_TYPE = TextRenderer.TextLayerType.NORMAL;
+    private static final Font.DisplayMode TEXT_LAYER_TYPE = Font.DisplayMode.NORMAL;
     //#elseif MC>=11602
     //$$ private static final boolean TEXT_LAYER_TYPE = false;
     //#endif
@@ -102,7 +68,7 @@ public class UGraphics {
     }
 
     public static UGraphics getFromTessellator() {
-        return new UGraphics(getTessellator().getBuffer());
+        return new UGraphics(getTessellator().getBuilder());
     }
 
     //#if MC<11700
@@ -142,13 +108,13 @@ public class UGraphics {
     //$$ }
     //#endif
 
-    public static Tessellator getTessellator() {
-        return Tessellator.getInstance();
+    public static Tesselator getTessellator() {
+        return Tesselator.getInstance();
     }
 
     @Deprecated // Use the non-static methods for 1.17+ compatibility or call UGraphics.getTessellator().draw() directly
     public static void draw() {
-        getTessellator().draw();
+        getTessellator().end();
     }
 
     public static void cullFace(int mode) {
@@ -341,10 +307,10 @@ public class UGraphics {
 
     /**
      * @deprecated Relies on the global {@link #setActiveTexture(int) activeTexture} state.<br>
-     * Prefer {@link #bindTexture(int, Identifier)} instead.
+     * Prefer {@link #bindTexture(int, ResourceLocation)} instead.
      */
     @Deprecated
-    public static void bindTexture(Identifier resourceLocation) {
+    public static void bindTexture(ResourceLocation resourceLocation) {
         bindTexture(getOrLoadTextureId(resourceLocation));
     }
 
@@ -356,11 +322,11 @@ public class UGraphics {
         //#endif
     }
 
-    public static void bindTexture(int index, Identifier resourceLocation) {
+    public static void bindTexture(int index, ResourceLocation resourceLocation) {
         bindTexture(index, getOrLoadTextureId(resourceLocation));
     }
 
-    private static int getOrLoadTextureId(Identifier resourceLocation) {
+    private static int getOrLoadTextureId(ResourceLocation resourceLocation) {
         TextureManager textureManager = UMinecraft.getMinecraft().getTextureManager();
         //#if MC>=11400
         AbstractTexture texture = textureManager.getTexture(resourceLocation);
@@ -368,18 +334,18 @@ public class UGraphics {
         //$$ ITextureObject texture = textureManager.getTexture(resourceLocation);
         //#endif
         if (texture == null) {
-            texture = new ResourceTexture(resourceLocation);
-            textureManager.registerTexture(resourceLocation, texture);
+            texture = new SimpleTexture(resourceLocation);
+            textureManager.register(resourceLocation, texture);
         }
-        return texture.getGlId();
+        return texture.getId();
     }
 
     public static int getStringWidth(String in) {
-        return UMinecraft.getFontRenderer().getWidth(in);
+        return UMinecraft.getFontRenderer().width(in);
     }
 
     public static int getFontHeight() {
-        return UMinecraft.getFontRenderer().fontHeight;
+        return UMinecraft.getFontRenderer().lineHeight;
     }
 
     @Deprecated // Pass UMatrixStack as first arg, required for 1.17+
@@ -390,9 +356,9 @@ public class UGraphics {
     public static void drawString(UMatrixStack stack, String text, float x, float y, int color, boolean shadow) {
         if ((color >> 24 & 255) <= 10) return;
         //#if MC>=11602
-        VertexConsumerProvider.Immediate irendertypebuffer$impl = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
-        UMinecraft.getFontRenderer().draw(text, x, y, color, shadow, stack.peek().getModel(), irendertypebuffer$impl, TEXT_LAYER_TYPE, 0, 15728880);
-        irendertypebuffer$impl.draw();
+        MultiBufferSource.BufferSource irendertypebuffer$impl = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+        UMinecraft.getFontRenderer().drawInBatch(text, x, y, color, shadow, stack.peek().getModel(), irendertypebuffer$impl, TEXT_LAYER_TYPE, 0, 15728880);
+        irendertypebuffer$impl.endBatch();
         //#else
         //$$ if (stack != UNIT_STACK) GL.pushMatrix();
         //$$ if (stack != UNIT_STACK) stack.applyToGlobalState();
@@ -418,10 +384,10 @@ public class UGraphics {
         if ((color >> 24 & 255) <= 10) return;
         String shadowText = ChatColor.Companion.stripColorCodes(text);
         //#if MC>=11602
-        VertexConsumerProvider.Immediate irendertypebuffer$impl = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
-        UMinecraft.getFontRenderer().draw(shadowText, x + 1f, y + 1f, shadowColor, false, stack.peek().getModel(), irendertypebuffer$impl, TEXT_LAYER_TYPE, 0, 15728880);
-        UMinecraft.getFontRenderer().draw(text, x, y, color, false, stack.peek().getModel(), irendertypebuffer$impl, TEXT_LAYER_TYPE, 0, 15728880);
-        irendertypebuffer$impl.draw();
+        MultiBufferSource.BufferSource irendertypebuffer$impl = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+        UMinecraft.getFontRenderer().drawInBatch(shadowText, x + 1f, y + 1f, shadowColor, false, stack.peek().getModel(), irendertypebuffer$impl, TEXT_LAYER_TYPE, 0, 15728880);
+        UMinecraft.getFontRenderer().drawInBatch(text, x, y, color, false, stack.peek().getModel(), irendertypebuffer$impl, TEXT_LAYER_TYPE, 0, 15728880);
+        irendertypebuffer$impl.endBatch();
         //#else
         //$$ if (stack != UNIT_STACK) GL.pushMatrix();
         //$$ if (stack != UNIT_STACK) stack.applyToGlobalState();
@@ -453,9 +419,9 @@ public class UGraphics {
         // TODO: Validate this code
         List<String> strings = new ArrayList<>();
 
-        TextHandler charManager = UMinecraft.getFontRenderer().getTextHandler();
-        //#if MC>=11900
-        StringVisitable properties = charManager.trimToWidth(Text.literal(str).fillStyle(EMPTY_WITH_FONT_ID), wrapWidth, Style.EMPTY);
+        StringSplitter charManager = UMinecraft.getFontRenderer().getSplitter();
+        //#if MC>=11900                                                                     /**Тут может быть ошибка...**/
+        FormattedText properties = charManager.headByWidth(Component.literal(str).withStyle(Style.EMPTY), wrapWidth, Style.EMPTY);
         //#else
         //$$ StringVisitable properties = charManager.trimToWidth(new LiteralText(str).fillStyle(EMPTY_WITH_FONT_ID), wrapWidth, Style.EMPTY);
         //#endif
@@ -659,7 +625,7 @@ public class UGraphics {
     }
 
     //#if MC>=11700
-    public static void setShader(Supplier<ShaderProgram> shader) {
+    public static void setShader(Supplier<ShaderInstance> shader) {
         RenderSystem.setShader(shader);
     }
     //#endif
@@ -675,7 +641,7 @@ public class UGraphics {
 
         private final int glMode;
         //#if MC>=11700
-        private final VertexFormat.DrawMode mcMode;
+        private final VertexFormat.Mode mcMode;
         //#else
         //$$ private final int mcMode;
         //#endif
@@ -690,19 +656,19 @@ public class UGraphics {
         }
 
         //#if MC>=11700
-        private static VertexFormat.DrawMode glToMcDrawMode(int glMode) {
+        private static VertexFormat.Mode glToMcDrawMode(int glMode) {
             switch (glMode) {
-                case GL11.GL_LINES: return VertexFormat.DrawMode.LINES;
-                case GL11.GL_LINE_STRIP: return VertexFormat.DrawMode.LINE_STRIP;
-                case GL11.GL_TRIANGLES: return VertexFormat.DrawMode.TRIANGLES;
-                case GL11.GL_TRIANGLE_STRIP: return VertexFormat.DrawMode.TRIANGLE_STRIP;
-                case GL11.GL_TRIANGLE_FAN: return VertexFormat.DrawMode.TRIANGLE_FAN;
-                case GL11.GL_QUADS: return VertexFormat.DrawMode.QUADS;
+                case GL11.GL_LINES: return VertexFormat.Mode.LINES;
+                case GL11.GL_LINE_STRIP: return VertexFormat.Mode.LINE_STRIP;
+                case GL11.GL_TRIANGLES: return VertexFormat.Mode.TRIANGLES;
+                case GL11.GL_TRIANGLE_STRIP: return VertexFormat.Mode.TRIANGLE_STRIP;
+                case GL11.GL_TRIANGLE_FAN: return VertexFormat.Mode.TRIANGLE_FAN;
+                case GL11.GL_QUADS: return VertexFormat.Mode.QUADS;
                 default: throw new IllegalArgumentException("Unsupported draw mode " + glMode);
             }
         }
 
-        private static DrawMode fromMc(VertexFormat.DrawMode mcMode) {
+        private static DrawMode fromMc(VertexFormat.Mode mcMode) {
             switch (mcMode) {
                 case LINES: return DrawMode.LINES;
                 case LINE_STRIP: return DrawMode.LINE_STRIP;
@@ -728,9 +694,9 @@ public class UGraphics {
         }
 
         //#if MC>=11600
-        public static DrawMode fromRenderLayer(RenderLayer renderLayer) {
+        public static DrawMode fromRenderLayer(RenderType renderLayer) {
             //#if MC>=11700
-            return fromMc(renderLayer.getDrawMode());
+            return fromMc(renderLayer.mode());
             //#else
             //$$ return fromGl(renderLayer.getDrawMode());
             //#endif
@@ -739,14 +705,14 @@ public class UGraphics {
     }
 
     public enum CommonVertexFormats {
-        POSITION(VertexFormats.POSITION),
-        POSITION_COLOR(VertexFormats.POSITION_COLOR),
-        POSITION_TEXTURE(VertexFormats.POSITION_TEXTURE),
-        POSITION_TEXTURE_COLOR(VertexFormats.POSITION_TEXTURE_COLOR),
-        POSITION_COLOR_TEXTURE_LIGHT(VertexFormats.POSITION_COLOR_TEXTURE_LIGHT_NORMAL),
-        POSITION_TEXTURE_LIGHT_COLOR(VertexFormats.POSITION_TEXTURE_LIGHT_COLOR),
-        POSITION_TEXTURE_COLOR_LIGHT(VertexFormats.POSITION_TEXTURE_COLOR_LIGHT),
-        POSITION_TEXTURE_COLOR_NORMAL(VertexFormats.POSITION_TEXTURE_COLOR_NORMAL),
+        POSITION(DefaultVertexFormat.POSITION),
+        POSITION_COLOR(DefaultVertexFormat.POSITION_COLOR),
+        POSITION_TEXTURE(DefaultVertexFormat.POSITION_TEX),
+        POSITION_TEXTURE_COLOR(DefaultVertexFormat.POSITION_TEX_COLOR),
+        POSITION_COLOR_TEXTURE_LIGHT(DefaultVertexFormat.BLOCK),
+        POSITION_TEXTURE_LIGHT_COLOR(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR),
+        POSITION_TEXTURE_COLOR_LIGHT(DefaultVertexFormat.PARTICLE),
+        POSITION_TEXTURE_COLOR_NORMAL(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL),
         ;
 
         public final VertexFormat mc;
@@ -769,19 +735,19 @@ public class UGraphics {
     //#if MC>=11700
     // Note: Needs to be an Identity hash map because VertexFormat's equals method is broken (compares via its
     //       component Map but order very much matters for VertexFormat) as of 1.17
-    private static final Map<VertexFormat, Supplier<ShaderProgram>> DEFAULT_SHADERS = new IdentityHashMap<>();
+    private static final Map<VertexFormat, Supplier<ShaderInstance>> DEFAULT_SHADERS = new IdentityHashMap<>();
     static {
-        DEFAULT_SHADERS.put(VertexFormats.LINES, GameRenderer::getRenderTypeLinesProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_TEXTURE_COLOR_LIGHT, GameRenderer::getParticleProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION, GameRenderer::getPositionProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_COLOR, GameRenderer::getPositionColorProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_COLOR_LIGHT, GameRenderer::getPositionColorLightmapProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_TEXTURE, GameRenderer::getPositionTexProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_COLOR_TEXTURE, GameRenderer::getPositionColorTexProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_TEXTURE_COLOR, GameRenderer::getPositionTexColorProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_COLOR_TEXTURE_LIGHT, GameRenderer::getPositionColorTexLightmapProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_TEXTURE_LIGHT_COLOR, GameRenderer::getPositionTexLightmapColorProgram);
-        DEFAULT_SHADERS.put(VertexFormats.POSITION_TEXTURE_COLOR_NORMAL, GameRenderer::getPositionTexColorNormalProgram);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_COLOR_NORMAL, GameRenderer::getRendertypeLinesShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.PARTICLE, GameRenderer::getParticleShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION, GameRenderer::getPositionShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_COLOR, GameRenderer::getPositionColorShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_COLOR_LIGHTMAP, GameRenderer::getPositionColorLightmapShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_TEX, GameRenderer::getPositionTexShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_COLOR_TEX, GameRenderer::getPositionColorTexShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_TEX_COLOR, GameRenderer::getPositionTexColorShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, GameRenderer::getPositionColorTexLightmapShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, GameRenderer::getPositionTexLightmapColorShader);
+        DEFAULT_SHADERS.put(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, GameRenderer::getPositionTexColorNormalShader);
     }
     //#endif
 
@@ -791,7 +757,7 @@ public class UGraphics {
 
     public UGraphics beginWithDefaultShader(DrawMode mode, VertexFormat format) {
         //#if MC>=11700
-        Supplier<ShaderProgram> supplier = DEFAULT_SHADERS.get(format);
+        Supplier<ShaderInstance> supplier = DEFAULT_SHADERS.get(format);
         if (supplier == null) {
             throw new IllegalArgumentException("No default shader for " + format + ". Bind your own and use beginWithActiveShader instead.");
         }
@@ -801,10 +767,10 @@ public class UGraphics {
     }
 
     //#if MC>=11600
-    private RenderLayer renderLayer;
-    public UGraphics beginRenderLayer(RenderLayer renderLayer) {
+    private RenderType renderLayer;
+    public UGraphics beginRenderLayer(RenderType renderLayer) {
         this.renderLayer = renderLayer;
-        beginWithActiveShader(DrawMode.fromRenderLayer(renderLayer), renderLayer.getVertexFormat());
+        beginWithActiveShader(DrawMode.fromRenderLayer(renderLayer), renderLayer.format());
         return this;
     }
     //#endif
@@ -828,7 +794,7 @@ public class UGraphics {
         //#if MC>=11600
         if (renderLayer != null) {
             //#if MC>=12000
-            renderLayer.draw(instance, RenderSystem.getVertexSorting());
+            renderLayer.end(instance, RenderSystem.getVertexSorting());
             //#else
             //$$ renderLayer.draw(instance, 0, 0, 0);
             //#endif
@@ -842,7 +808,7 @@ public class UGraphics {
         //#if MC>=11600
         if (renderLayer != null) {
             //#if MC>=12000
-            renderLayer.draw(instance, RenderSystem.getVertexSorting());
+            renderLayer.end(instance, RenderSystem.getVertexSorting());
             //#else
             //$$ renderLayer.draw(instance, cameraX, cameraY, cameraZ);
             //#endif
@@ -850,7 +816,7 @@ public class UGraphics {
         }
         //#endif
         //#if MC>=12000
-        instance.setSorter(RenderSystem.getVertexSorting());
+        instance.setQuadSorting(RenderSystem.getVertexSorting());
         //#elseif MC>=11700
         //$$ instance.sortFrom(cameraX, cameraY, cameraZ);
         //#else
@@ -864,8 +830,8 @@ public class UGraphics {
         // need to check them unless we want them enabled.
         boolean[] wantEnabled = new boolean[2];
         for (VertexFormatElement element : vertexFormat.getElements()) {
-            if (element.getType() == VertexFormatElement.Type.UV) {
-                int index = element.getUvIndex();
+            if (element.getUsage() == VertexFormatElement.Usage.UV) {
+                int index = element.getIndex();
                 if (wantEnabled.length <= index) {
                     wantEnabled = Arrays.copyOf(wantEnabled, index + 1);
                 }
@@ -878,43 +844,11 @@ public class UGraphics {
     private void doDraw() {
         VertexFormat vertexFormat = this.vertexFormat;
         if (vertexFormat == null) {
-            getTessellator().draw();
+            getTessellator().end();
             return;
         }
 
-        //#if MC<11700
-        //$$ boolean[] wantEnabledStates = getDesiredTextureUnitState(vertexFormat);
-        //$$ boolean[] wasEnabledStates = new boolean[wantEnabledStates.length];
-        //$$ for (int i = 0; i < wasEnabledStates.length; i++) {
-        //$$     final int index = i;
-        //$$     configureTextureUnit(index, () -> {
-        //$$         boolean isEnabled = wasEnabledStates[index] = GL11.glIsEnabled(GL11.GL_TEXTURE_2D);
-        //$$         boolean wantEnabled = wantEnabledStates[index];
-        //$$         if (isEnabled != wantEnabled) {
-        //$$             if (wantEnabled) {
-        //$$                 RenderSystem.enableTexture();
-        //$$             } else {
-        //$$                 RenderSystem.disableTexture();
-        //$$             }
-        //$$         }
-        //$$     });
-        //$$ }
-        //#endif
-
-        getTessellator().draw();
-
-        //#if MC<11700
-        //$$ for (int i = 0; i < wasEnabledStates.length; i++) {
-        //$$     if (wasEnabledStates[i] == wantEnabledStates[i]) {
-        //$$         continue;
-        //$$     }
-        //$$     if (wasEnabledStates[i]) {
-        //$$         configureTextureUnit(i, RenderSystem::enableTexture);
-        //$$     } else {
-        //$$         configureTextureUnit(i, RenderSystem::disableTexture);
-        //$$     }
-        //$$ }
-        //#endif
+        getTessellator().end();
     }
 
     @Deprecated // Pass UMatrixStack as first arg, required for 1.17+
@@ -926,17 +860,7 @@ public class UGraphics {
         if (stack == UNIT_STACK) {
             instance.vertex(x, y, z);
         } else {
-            //#if MC>=11602
             instance.vertex(stack.peek().getModel(), (float) x, (float) y, (float) z);
-            //#else
-            //$$ Vector4f vec = new Vector4f((float) x, (float) y, (float) z, 1f);
-            //#if MC>=11400
-            //$$ vec.transform(stack.peek().getModel());
-            //#else
-            //$$ Matrix4f.transform(stack.peek().getModel(), vec, vec);
-            //#endif
-            //$$ instance.pos(vec.getX(), vec.getY(), vec.getZ());
-            //#endif
         }
         return this;
     }
@@ -979,13 +903,13 @@ public class UGraphics {
     }
 
     public UGraphics endVertex() {
-        instance.next();
+        instance.endVertex();
         return this;
     }
 
     public UGraphics tex(double u, double v) {
         //#if MC>=11502
-        instance.texture((float)u,(float)v);
+        instance.uv((float)u,(float)v);
         //#else
         //$$ instance.tex(u, v);
         //#endif
@@ -994,7 +918,7 @@ public class UGraphics {
 
     public UGraphics overlay(int u, int v) {
         //#if MC>=11502
-        instance.overlay(u, v);
+        instance.overlayCoords(u, v);
         //#else
         //$$ instance.tex(u, v);
         //#endif
@@ -1002,65 +926,7 @@ public class UGraphics {
     }
 
     public UGraphics light(int u, int v) {
-        instance.light(u, v);
+        instance.uv2(u, v);
         return this;
     }
-
-    /**
-     * Using UMatrixStack should be preferred for all versions as direct GL transforms will break in 1.17.
-     *
-     * These methods are no different than transformation methods in the UGraphics class except they are not deprecated
-     * and as such can be used in version-specific code.
-     */
-    //#if MC<11700
-    //$$ public static class GL {
-    //$$     public static void pushMatrix() {
-    //$$         RenderSystem.pushMatrix();
-    //$$     }
-    //$$
-    //$$     public static void popMatrix() {
-    //$$         RenderSystem.popMatrix();
-    //$$     }
-    //$$
-    //$$     public static void translate(float x, float y, float z) {
-            //#if MC>=11502
-            //$$ RenderSystem.translatef(x, y, z);
-            //#else
-            //$$ translate(x, y, (double) z);
-            //#endif
-    //$$     }
-    //$$
-    //$$     public static void translate(double x, double y, double z) {
-            //#if MC>=11502
-            //$$ RenderSystem.translated(x, y, z);
-            //#else
-            //$$ GlStateManager.translate(x, y, z);
-            //#endif
-    //$$     }
-    //$$
-    //$$     public static void rotate(float angle, float x, float y, float z) {
-            //#if MC>=11502
-            //$$ RenderSystem.rotatef(angle, x, y, z);
-            //#else
-            //$$ GlStateManager.rotate(angle, x, y, z);
-            //#endif
-    //$$     }
-    //$$
-    //$$     public static void scale(float x, float y, float z) {
-            //#if MC>=11502
-            //$$ RenderSystem.scalef(x, y, z);
-            //#else
-            //$$ scale(x, y, (double) z);
-            //#endif
-    //$$     }
-    //$$
-    //$$     public static void scale(double x, double y, double z) {
-            //#if MC>=11502
-            //$$ RenderSystem.scaled(x, y, z);
-            //#else
-            //$$ GlStateManager.scale(x, y, z);
-            //#endif
-    //$$     }
-    //$$ }
-    //#endif
 }

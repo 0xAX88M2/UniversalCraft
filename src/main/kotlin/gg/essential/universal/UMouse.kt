@@ -12,7 +12,7 @@ object UMouse {
         val x: Double
             get() {
                 //#if MC>=11502
-                return UMinecraft.getMinecraft().mouse.x
+                return UMinecraft.getMinecraft().mouseHandler.xpos()
                 //#else
                 //$$ return Mouse.getX().toDouble()
                 //#endif
@@ -22,7 +22,7 @@ object UMouse {
         val y: Double
             get() {
                 //#if MC>=11400
-                return UMinecraft.getMinecraft().mouse.y
+                return UMinecraft.getMinecraft().mouseHandler.ypos()
                 //#else
                 //$$ return UResolution.windowHeight - Mouse.getY().toDouble() - 1
                 //#endif
@@ -43,7 +43,7 @@ object UMouse {
     @Deprecated("Orientation is different between Minecraft versions.", replaceWith = ReplaceWith("UMouse.Raw.x"))
     fun getTrueX(): Double {
         //#if MC>=11502
-        return UMinecraft.getMinecraft().mouse.x
+        return UMinecraft.getMinecraft().mouseHandler.xpos()
         //#else
         //$$ return Mouse.getX().toDouble()
         //#endif
@@ -60,7 +60,7 @@ object UMouse {
     @Deprecated("Orientation is different between Minecraft versions.", replaceWith = ReplaceWith("UMouse.Raw.y"))
     fun getTrueY(): Double {
         //#if MC>=11502
-        return UMinecraft.getMinecraft().mouse.y
+        return UMinecraft.getMinecraft().mouseHandler.ypos()
         //#else
         //$$ return Mouse.getY().toDouble()
         //#endif

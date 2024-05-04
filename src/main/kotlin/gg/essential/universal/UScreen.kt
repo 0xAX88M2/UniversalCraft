@@ -1,24 +1,10 @@
 package gg.essential.universal
 
-import net.minecraft.client.gui.screen.Screen
-
-//#if MC>=12000
-import net.minecraft.client.gui.DrawContext
-//#endif
-
-//#if MC>=11502
 import gg.essential.universal.UKeyboard.toInt
 import gg.essential.universal.UKeyboard.toModifiers
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.text.Text
-//#if MC<11900
-//$$ import net.minecraft.text.TranslatableText
-//#endif
-//#else
-//$$ import org.lwjgl.input.Mouse
-//$$ import java.io.IOException
-//$$
-//#endif
+import net.minecraft.client.gui.GuiGraphics
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.network.chat.Component
 
 abstract class UScreen(
     val restoreCurrentGuiOnClose: Boolean = false,
@@ -26,7 +12,7 @@ abstract class UScreen(
     open var unlocalizedName: String? = null
 ) :
 //#if MC>=11900
-    Screen(Text.translatable(unlocalizedName ?: ""))
+    Screen(Component.translatable(unlocalizedName ?: ""))
 //#elseif MC>=11502
 //$$     Screen(TranslatableText(unlocalizedName ?: ""))
 //#else
@@ -43,18 +29,18 @@ abstract class UScreen(
     private val screenToRestore: Screen? = if (restoreCurrentGuiOnClose) currentScreen else null
 
     //#if MC>=12000
-    private var drawContexts = mutableListOf<DrawContext>()
-    private inline fun <R> withDrawContext(matrixStack: UMatrixStack, block: (DrawContext) -> R) {
-        val client = this.client!!
+    private var drawContexts = mutableListOf<GuiGraphics>()
+    private inline fun <R> withDrawContext(matrixStack: UMatrixStack, block: (GuiGraphics) -> R) {
+        val client = this.minecraft!!
         val context = drawContexts.lastOrNull()
-            ?: DrawContext(client, client.bufferBuilders.entityVertexConsumers)
-        context.matrices.push()
-        val mc = context.matrices.peek()
+            ?: GuiGraphics(client, client.renderBuffers().bufferSource())
+        context.pose().pushPose()
+        val mc = context.pose().last()
         val uc = matrixStack.peek()
-        mc.positionMatrix.set(uc.model)
-        mc.normalMatrix.set(uc.normal)
+        mc.pose().set(uc.model)
+        mc.normal().set(uc.normal)
         block(context)
-        context.matrices.pop()
+        context.pose().popPose()
     }
     //#endif
 
@@ -72,15 +58,15 @@ abstract class UScreen(
     }
 
     //#if MC>=11900
-    override fun getTitle(): Text = Text.translatable(unlocalizedName ?: "")
+    override fun getTitle(): Component = Component.translatable(unlocalizedName ?: "")
     //#else
     //$$ override fun getTitle(): Text = TranslatableText(unlocalizedName ?: "")
     //#endif
 
     //#if MC>=12000
-    final override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+    final override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
         drawContexts.add(context)
-        onDrawScreenCompat(UMatrixStack(context.matrices), mouseX, mouseY, delta)
+        onDrawScreenCompat(UMatrixStack(context.pose()), mouseX, mouseY, delta)
         drawContexts.removeLast()
     //#elseif MC>=11602
     //$$ final override fun render(matrixStack: MatrixStack, mouseX: Int, mouseY: Int, partialTicks: Float) {
@@ -150,7 +136,7 @@ abstract class UScreen(
     private var lastBackgroundMouseX = 0
     private var lastBackgroundMouseY = 0
     private var lastBackgroundDelta = 0f
-    final override fun renderBackground(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
+    final override fun renderBackground(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
         lastBackgroundMouseX = mouseX
         lastBackgroundMouseY = mouseY
         lastBackgroundDelta = delta
@@ -158,7 +144,7 @@ abstract class UScreen(
     //$$ final override fun renderBackground(context: DrawContext) {
     //#endif
         drawContexts.add(context)
-        onDrawBackgroundCompat(UMatrixStack(context.matrices), 0)
+        onDrawBackgroundCompat(UMatrixStack(context.pose()), 0)
         drawContexts.removeLast()
     }
     //#elseif MC>=11904
@@ -401,7 +387,7 @@ abstract class UScreen(
     companion object {
         @JvmStatic
         val currentScreen: Screen?
-            get() = UMinecraft.getMinecraft().currentScreen
+            get() = UMinecraft.getMinecraft().screen
 
         @JvmStatic
         fun displayScreen(screen: Screen?) {

@@ -2,12 +2,12 @@ package gg.essential.universal.wrappers
 
 import gg.essential.universal.UMinecraft
 import gg.essential.universal.wrappers.message.UTextComponent
-import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.client.player.LocalPlayer
 import java.util.*
 
 object UPlayer {
     @JvmStatic
-    fun getPlayer(): ClientPlayerEntity? {
+    fun getPlayer(): LocalPlayer? {
         return UMinecraft.getMinecraft().player
     }
 
@@ -17,7 +17,7 @@ object UPlayer {
     @JvmStatic
     fun sendClientSideMessage(message: UTextComponent) {
         //#if MC>=11900
-        getPlayer()!!.sendMessage(message)
+        getPlayer()!!.sendSystemMessage(message)
         //#elseif MC>=11602
         //$$ getPlayer()!!.sendSystemMessage(message, null)
         //#elseif MC>=11202
@@ -30,7 +30,7 @@ object UPlayer {
     @JvmStatic
     fun getUUID(): UUID {
         //#if MC>=12002
-        return UMinecraft.getMinecraft().session.uuidOrNull!!
+        return UMinecraft.getMinecraft().user.profileId!!
         //#else
         //$$ return UMinecraft.getMinecraft().session.profile.id
         //#endif
@@ -56,19 +56,19 @@ object UPlayer {
 
     @JvmStatic
     fun getPrevPosX(): Double {
-        return getPlayer()?.prevX
+        return getPlayer()?.xo
             ?: throw NullPointerException("UPlayer.getPrevPosX() called with no existing Player")
     }
 
     @JvmStatic
     fun getPrevPosY(): Double {
-        return getPlayer()?.prevY
+        return getPlayer()?.yo
             ?: throw NullPointerException("UPlayer.getPrevPosY() called with no existing Player")
     }
 
     @JvmStatic
     fun getPrevPosZ(): Double {
-        return getPlayer()?.prevZ
+        return getPlayer()?.zo
             ?: throw NullPointerException("UPlayer.getPrevPosZ() called with no existing Player")
     }
 }

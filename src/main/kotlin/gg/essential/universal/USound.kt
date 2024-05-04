@@ -1,16 +1,10 @@
 package gg.essential.universal
 
-//#if MC>=11903
-import net.minecraft.registry.entry.RegistryEntry
-//#endif
+import net.minecraft.client.resources.sounds.SimpleSoundInstance
+import net.minecraft.core.Holder
+import net.minecraft.sounds.SoundEvent
+import net.minecraft.sounds.SoundEvents
 
-//#if MC>10809
-import net.minecraft.sound.SoundEvents
-import net.minecraft.sound.SoundCategory
-import net.minecraft.sound.SoundEvent
-//#else
-//$$ import net.minecraft.util.ResourceLocation
-//#endif
 
 object USound {
     //#if MC>10809
@@ -23,11 +17,11 @@ object USound {
         // initialize the sound handler correctly, which is very common, so protect against that
         val soundHandler = UMinecraft.getMinecraft().soundManager ?: return
 
-        PositionedSoundRecordFactory.makeRecord(event, volume, pitch)?.let { soundHandler.play(it) }
+        SimpleSoundInstance.forUI(event, volume, pitch)?.let { soundHandler.play(it) }
     }
 
     //#if MC>=11903
-    fun playSoundStatic(registryEntry: RegistryEntry<SoundEvent>, volume: Float, pitch: Float) {
+    fun playSoundStatic(registryEntry: Holder<SoundEvent>, volume: Float, pitch: Float) {
         playSoundStatic(registryEntry.value(), volume, pitch)
     }
     //#endif
@@ -43,7 +37,7 @@ object USound {
 
     fun playExpSound() {
         //#if MC>10809
-        playSoundStatic(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 0.25F, 1.0f)
+        playSoundStatic(SoundEvents.EXPERIENCE_ORB_PICKUP, 0.25F, 1.0f)
         //#else
         //$$ playSoundStatic(ResourceLocation("random.orb"), 0.25F, 1.0F);
         //#endif
@@ -51,7 +45,7 @@ object USound {
 
     fun playLevelupSound() {
         //#if MC>10809
-        playSoundStatic(SoundEvents.ENTITY_PLAYER_LEVELUP, 0.25F, 1.0f)
+        playSoundStatic(SoundEvents.PLAYER_LEVELUP, 0.25F, 1.0f)
         //#else
         //$$ playSoundStatic(ResourceLocation("random.levelup"), 0.25F, 1.0F);
         //#endif
@@ -59,7 +53,7 @@ object USound {
 
     fun playPlingSound() {
         //#if MC>10809
-        playSoundStatic(SoundEvents.BLOCK_NOTE_BLOCK_PLING, 0.25F, 1.0f)
+        playSoundStatic(SoundEvents.NOTE_BLOCK_PLING, 0.25F, 1.0f)
         //#else
         //$$ playSoundStatic(ResourceLocation("note.pling"), 0.25F, 1.0F);
         //#endif
