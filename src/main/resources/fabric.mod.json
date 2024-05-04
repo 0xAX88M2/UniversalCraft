@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "universalcraft",
+  "name": "UniversalCraft",
+  "version": "323",
+  "environment": "*",
+  "authors": [
+    "Sk1erLLC"
+  ],
+  "depends": {
+    "fabricloader": "*"
+  },
+  "description": "UniversalCraft",
+  "custom": {
+    "modmenu": {
+      "badges": [ "library" ]
+    }
+  }
+}
